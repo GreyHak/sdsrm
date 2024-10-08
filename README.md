@@ -1,23 +1,19 @@
 # SDSRM: Satisfactory Dedicated Server Remote Manager by GreyHak
-> **Note:** This remote server manager is for Satisfactory 1.0 which will be
-> released on September 10, 2024.  This remote server manager will not work
-> with Update 8.
 
 This is a remote server manager for Satisfactory 1.0's Dedicated Server which
 implements the server's HTTPS API.
+Tested on v1.0.0.3, server build 15811013.
 
-[Satisfactory](https://www.satisfactorygame.com/) is an non-competitive,
+[Satisfactory](https://www.satisfactorygame.com/) is a non-competitive,
 first-person, open-world, factory-building and exploration game produced by
 [Coffee Stain Studios](https://www.coffeestain.com/).
 
-Satisfactory Dedicated Server's API documentation has not yet been released.
-This API implementation is based on the information Coffee Stain Studios
-released in their YouTube video
-[Dedicated Servers have LEVELED UP!](https://www.youtube.com/watch?v=v8piXNQwcUw&t=471s).
-Since this information is currently limited, this implementation is also
-limited.
+This API implementation is based on the documentation Coffee Stain Studios
+releases with the game.  Windows users can find it at:
+`C:\Program Files (x86)\Steam\steamapps\common\Satisfactory\CommunityResources\DedicatedServerAPIDocs.md`
 
 Currently supported features:
+ - User and Administrator Login and Login Verification
  - Get Server Status
  - Set Server Name
  - Upload Save

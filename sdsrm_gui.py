@@ -21,18 +21,18 @@ import json
 
 DEFAULT_SERVER_ADDRESS = "127.0.0.1"
 DEFAULT_SERVER_PORT = "7777"
-DEFAULT_AUTHORIZATION_CODE = "pAAGskAG7aotFqpiI6vivswwphnU"
+authorizationInfo = None
 
 SERVER_CONFIG_FILENAME = "ServerConfig.json"
 
-def saveServerConfig(hostname, port, authorizationCode):
+def saveServerConfig(hostname, port, password):
    with open(SERVER_CONFIG_FILENAME, "w") as fout:
-      json.dump({"Host": hostname, "Port": port, "Authorization": authorizationCode}, fout)
+      json.dump({"Host": hostname, "Port": port, "Password": password}, fout)
 
 def loadServerConfig():
    hostname = DEFAULT_SERVER_ADDRESS
    port = DEFAULT_SERVER_PORT
-   authorizationCode = DEFAULT_AUTHORIZATION_CODE
+   password = None
    try:
       with open(SERVER_CONFIG_FILENAME, "r") as fin:
          jdata = json.load(fin)
@@ -40,38 +40,78 @@ def loadServerConfig():
             hostname = jdata["Host"]
          if "Port" in jdata:
             port = jdata["Port"]
-         if "Authorization" in jdata:
-            authorizationCode = jdata["Authorization"]
+         if "Password" in jdata:
+            password = jdata["Password"]
    except: # FileNotFoundError
       pass
-   return (hostname, port, authorizationCode)
+   return (hostname, port, password)
 
-def onGetServerState():
-   serverStatusValue.set("Initiated")
+def getServerDetails():
    hostname = serverIpEntry.get()
    port = int(serverPortEntry.get())
-   authorizationCode = serverAuthorizationCodeEntry.get()
-   print(f"onGetServerState({hostname}:{port})")
+   password = serverPasswordEntry.get()
+   return ((hostname, port), password)
 
+def authenticated():
+   global authorizationInfo
+
+   ((hostname, port), password) = getServerDetails()
+
+   if authorizationInfo != None:
+      (adminFlag, authorizationCode) = authorizationInfo
+      (authVerResultStr, authVerResult) = sdsrm_lib.verifyAuthentication(hostname, port, authorizationCode)
+      if authVerResult == None:
+         print("Authentication code rejected")
+         authorizationInfo = None
+
+   if authorizationInfo == None:
+      adminFlag = False
+      (authStatus, authCode) = sdsrm_lib.authenticate(hostname, port, adminFlag, password)
+      if authCode == None:
+         print("Login failed")
+         serverStatusValue.set(authStatus)
+         return
+      authorizationInfo = (adminFlag, authCode)
+      saveServerConfig(hostname, port, password)
+      print("Login successful")
+
+   return authorizationInfo != None
+
+def onGetServerState():
+   global authorizationInfo
+   serverStatusValue.set("Initiated")
+
+   if not authenticated():
+      serverStatusValue.set("Auth Failure")
+      return
+   (adminFlag, authorizationCode) = authorizationInfo
+   ((hostname, port), password) = getServerDetails()
+
+   print(f"\ngetServerState({hostname}:{port})")
    (getStatus, serverStatus) = sdsrm_lib.getServerState(hostname, port, authorizationCode)
+   print(f"getServerState returned: {getStatus}, len {len(serverStatus)}")
 
-   if serverStatus:
+   if serverStatus != None:
       serverStatusValue.set(serverStatus)
-      saveServerConfig(hostname, port, authorizationCode)
    else:
+      authorizationInfo = None
       serverStatusValue.set(getStatus)
 
 def onSetServerName():
+   global authorizationInfo
    setServerNameStatusValue.set("Initiated")
-   hostname = serverIpEntry.get()
-   port = int(serverPortEntry.get())
-   authorizationCode = serverAuthorizationCodeEntry.get()
-   newName = setServerNameEntry.get()
-   print(f"onSetServerName({hostname}:{port}, {newName})")
 
+   if not authenticated():
+      setServerNameStatusValue.set("Auth Failure")
+      return
+   (adminFlag, authorizationCode) = authorizationInfo
+   ((hostname, port), password) = getServerDetails()
+
+   newName = setServerNameEntry.get()
+   print(f"\nsetServerName({hostname}:{port}, {newName})")
    setStatus = sdsrm_lib.setServerName(hostname, port, authorizationCode, newName)
-   if setStatus == "Success":
-      saveServerConfig(hostname, port, authorizationCode)
+   print(f"setServerName returned: {setStatus}")
+
    setServerNameStatusValue.set(setStatus)
 
 def onBrowseSave():
@@ -80,24 +120,29 @@ def onBrowseSave():
    savePathValue.set(filepath)
 
 def onUploadSave():
+   global authorizationInfo
    uploadSaveStatusValue.set("Initiated")
-   hostname = serverIpEntry.get()
-   port = int(serverPortEntry.get())
-   authorizationCode = serverAuthorizationCodeEntry.get()
+
+   if not authenticated():
+      uploadSaveStatusValue.set("Auth Failure")
+      return
+   (adminFlag, authorizationCode) = authorizationInfo
+   ((hostname, port), password) = getServerDetails()
+
    filepath = savePathValue.get()
    saveName = saveNameEntry.get()
    loadCheckFlag = loadCheck.get()
    advancedCheckFlag = advancedCheck.get()
-   print(f"onUploadSave({hostname}:{port}, {filepath}, load={loadCheckFlag}, advanced={advancedCheckFlag})")
 
+   print(f"\nuploadSave({hostname}:{port}, {filepath}, {saveName}, {loadCheckFlag}, {advancedCheckFlag})")
    uploadStatus = sdsrm_lib.uploadSave(hostname, port, authorizationCode, filepath, saveName, loadCheckFlag, advancedCheckFlag)
-   if uploadStatus == "Success":
-      saveServerConfig(hostname, port, authorizationCode)
+   print(f"uploadSave returned: {uploadStatus}")
+
    uploadSaveStatusValue.set(uploadStatus)
 
 if __name__ == '__main__':
 
-   (hostname, port, authorization) = loadServerConfig()
+   (hostname, port, password) = loadServerConfig()
 
    pady = 8
    myLabelColor = "gray90"  # Dynamic, not-editable text
@@ -128,9 +173,9 @@ if __name__ == '__main__':
    serverPortEntry = tk.Entry(frame1, font=myNormalFont, width=6, textvariable=tk.StringVar(window, port))
    serverPortEntry.pack(side=tk.LEFT)
    tk.Label(frame1, bg=myOtherRowColor, width=10).pack(side=tk.LEFT)
-   tk.Label(frame1, font=myNormalFont, bg=myOtherRowColor, fg=myOtherRowTextColor, text="Authorization Code:").pack(side=tk.LEFT)
-   serverAuthorizationCodeEntry = tk.Entry(frame1, font=myNormalFont, width=40, show="*", textvariable=tk.StringVar(window, authorization))
-   serverAuthorizationCodeEntry.pack(side=tk.LEFT)
+   tk.Label(frame1, font=myNormalFont, bg=myOtherRowColor, fg=myOtherRowTextColor, text="Password:").pack(side=tk.LEFT)
+   serverPasswordEntry = tk.Entry(frame1, font=myNormalFont, width=40, show="*", textvariable=tk.StringVar(window, (password, "")[password == None]))
+   serverPasswordEntry.pack(side=tk.LEFT)
 
    frame2 = tk.Frame(pady=pady, bg=myRowColor)
    frame2.pack()

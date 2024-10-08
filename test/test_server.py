@@ -18,7 +18,7 @@ import ssl
 import json
 import time
 
-AUTHORIZATION_CODE = b"pAAGskAG7aotFqpiI6vivswwphnU"
+AUTHORIZATION_CODE = b"ew0KCSJwbCI6ICJBZG1pbmlzdHJhdG9yIg0KfQ==.3EA86D4C9D008C692F8C12DAB9554FE8733B8FF55D45E2D4F74037295BF3714F9A68CB27B94A554C5164321BC3C78705463E8DC7A7ACA45294D56C0D432F2982"
 
 def parseHeaders(request):
    headers = []
@@ -46,7 +46,7 @@ ERROR_MESSAGE_400 = b"HTTP/1.1 400\r\nServer: FactoryGame/++FactoryGame+dev-CL-3
 ERROR_MESSAGE_403 = b"HTTP/1.1 403\r\nServer: FactoryGame/++FactoryGame+dev-CL-332077 (Windows)\r\nkeep-alive: timeout=15.000000\r\ncontent-length: 0\r\n\r\n"
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-   s.bind(("127.0.0.1", 7777))
+   s.bind(("127.0.0.1", 7778))
    s.listen()
    print("Successfully Started Satisfactory API Test Server")
    with context.wrap_socket(s, server_side=True) as ssock:
@@ -87,14 +87,12 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                   if lowerHeader[:14] == b"content-type: ":
                      if lowerHeader[14:30] == b"application/json":
                         contentTypeJsonFlag = True
-                        if lowerHeader[30:41] == b"; boundary=":
-                           contentTypeBoundary = header[41:]
+                  if b"; boundary=" in lowerHeader:
+                     contentTypeBoundary = header[lowerHeader.find(b"; boundary=")+11:]
+                     print(f"has boundary: {contentTypeBoundary}")
 
                if not contentTypeJsonFlag:
-                  print("ERROR: Test server is assuming that the real server requires the header 'Content-Type: application/json' as demonstrated.")
-                  conn.sendall(ERROR_MESSAGE_400)
-                  conn.close()
-                  break
+                  print("WARNING: Test server is assuming that the real server requires the header 'Content-Type: application/json' as demonstrated.")
 
                authorizationCode = None
                contentLength = None
@@ -154,6 +152,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
                print("Parsing JSON...")
                jdata = json.loads(data.decode())
+               print(jdata)
                if "function" in jdata:
                   function = jdata["function"]
                   print(f"function={function}")
