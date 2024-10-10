@@ -25,14 +25,15 @@ authorizationInfo = None
 
 SERVER_CONFIG_FILENAME = "ServerConfig.json"
 
-def saveServerConfig(hostname, port, password):
+def saveServerConfig(hostname, port, password, adminApiToken):
    with open(SERVER_CONFIG_FILENAME, "w") as fout:
-      json.dump({"Host": hostname, "Port": port, "Password": password}, fout)
+      json.dump({"Host": hostname, "Port": port, "Password": password, "API Token": adminApiToken}, fout)
 
 def loadServerConfig():
    hostname = DEFAULT_SERVER_ADDRESS
    port = DEFAULT_SERVER_PORT
    password = None
+   adminApiToken = None
    try:
       with open(SERVER_CONFIG_FILENAME, "r") as fin:
          jdata = json.load(fin)
@@ -42,20 +43,26 @@ def loadServerConfig():
             port = jdata["Port"]
          if "Password" in jdata:
             password = jdata["Password"]
+         if "API Token" in jdata:
+            adminApiToken = jdata["API Token"]
    except: # FileNotFoundError
       pass
-   return (hostname, port, password)
+   return ((hostname, port), (password, adminApiToken))
 
 def getServerDetails():
    hostname = serverIpEntry.get()
    port = int(serverPortEntry.get())
    password = serverPasswordEntry.get()
-   return ((hostname, port), password)
+   adminApiToken = serverAdminApiTokenEntry.get()
+   return ((hostname, port), (password, adminApiToken))
 
 def authenticated():
    global authorizationInfo
 
-   ((hostname, port), password) = getServerDetails()
+   ((hostname, port), (password, adminApiToken)) = getServerDetails()
+
+   if adminApiToken != None and len(adminApiToken) > 0:
+      authorizationInfo = (True, adminApiToken)
 
    if authorizationInfo != None:
       (adminFlag, authorizationCode) = authorizationInfo
@@ -72,7 +79,7 @@ def authenticated():
          serverStatusValue.set(authStatus)
          return
       authorizationInfo = (adminFlag, authCode)
-      saveServerConfig(hostname, port, password)
+      saveServerConfig(hostname, port, password, adminApiToken)
       print("Login successful")
 
    return authorizationInfo != None
@@ -80,6 +87,7 @@ def authenticated():
 def onGetServerState():
    global authorizationInfo
    serverStatusValue.set("Initiated")
+   print()
 
    if not authenticated():
       serverStatusValue.set("Auth Failure")
@@ -87,7 +95,7 @@ def onGetServerState():
    (adminFlag, authorizationCode) = authorizationInfo
    ((hostname, port), password) = getServerDetails()
 
-   print(f"\ngetServerState({hostname}:{port})")
+   print(f"getServerState({hostname}:{port})")
    (getStatus, serverStatus) = sdsrm_lib.getServerState(hostname, port, authorizationCode)
    print(f"getServerState returned: {getStatus}, len {len(serverStatus)}")
 
@@ -100,6 +108,7 @@ def onGetServerState():
 def onSetServerName():
    global authorizationInfo
    setServerNameStatusValue.set("Initiated")
+   print()
 
    if not authenticated():
       setServerNameStatusValue.set("Auth Failure")
@@ -108,7 +117,7 @@ def onSetServerName():
    ((hostname, port), password) = getServerDetails()
 
    newName = setServerNameEntry.get()
-   print(f"\nsetServerName({hostname}:{port}, {newName})")
+   print(f"setServerName({hostname}:{port}, {newName})")
    setStatus = sdsrm_lib.setServerName(hostname, port, authorizationCode, newName)
    print(f"setServerName returned: {setStatus}")
 
@@ -122,6 +131,7 @@ def onBrowseSave():
 def onUploadSave():
    global authorizationInfo
    uploadSaveStatusValue.set("Initiated")
+   print()
 
    if not authenticated():
       uploadSaveStatusValue.set("Auth Failure")
@@ -134,7 +144,7 @@ def onUploadSave():
    loadCheckFlag = loadCheck.get()
    advancedCheckFlag = advancedCheck.get()
 
-   print(f"\nuploadSave({hostname}:{port}, {filepath}, {saveName}, {loadCheckFlag}, {advancedCheckFlag})")
+   print(f"uploadSave({hostname}:{port}, {filepath}, {saveName}, {loadCheckFlag}, {advancedCheckFlag})")
    uploadStatus = sdsrm_lib.uploadSave(hostname, port, authorizationCode, filepath, saveName, loadCheckFlag, advancedCheckFlag)
    print(f"uploadSave returned: {uploadStatus}")
 
@@ -142,7 +152,7 @@ def onUploadSave():
 
 if __name__ == '__main__':
 
-   (hostname, port, password) = loadServerConfig()
+   ((hostname, port), (password, adminApiToken)) = loadServerConfig()
 
    pady = 8
    myLabelColor = "gray90"  # Dynamic, not-editable text
@@ -165,7 +175,7 @@ if __name__ == '__main__':
    photo = tk.PhotoImage(file="sdsrm_logo.gif")
    tk.Label(image=photo, bg=myRowColor).pack()
 
-   frame1 = tk.Frame(pady=pady, padx=31, bg=myOtherRowColor)
+   frame1 = tk.Frame(pady=pady, padx=90, bg=myOtherRowColor)
    frame1.pack()
    tk.Label(frame1, font=myNormalFont, bg=myOtherRowColor, fg=myOtherRowTextColor, text="Server IP Address/Port:").pack(side=tk.LEFT)
    serverIpEntry = tk.Entry(frame1, font=myNormalFont, width=20, textvariable=tk.StringVar(window, hostname))
@@ -176,6 +186,14 @@ if __name__ == '__main__':
    tk.Label(frame1, font=myNormalFont, bg=myOtherRowColor, fg=myOtherRowTextColor, text="Password:").pack(side=tk.LEFT)
    serverPasswordEntry = tk.Entry(frame1, font=myNormalFont, width=40, show="*", textvariable=tk.StringVar(window, (password, "")[password == None]))
    serverPasswordEntry.pack(side=tk.LEFT)
+
+   frame1b = tk.Frame(pady=pady, padx=82, bg=myOtherRowColor)
+   frame1b.pack()
+   tk.Label(frame1b, bg=myOtherRowColor, width=87).pack(side=tk.LEFT)
+   tk.Label(frame1b, font=myNormalFont, bg=myOtherRowColor, fg=myOtherRowTextColor, text="or  Admin API Token:").pack(side=tk.LEFT)
+   serverAdminApiTokenEntry = tk.Entry(frame1b, font=myNormalFont, width=40, show="*", textvariable=tk.StringVar(window, (adminApiToken, "")[adminApiToken == None]))
+   serverAdminApiTokenEntry.pack(side=tk.LEFT)
+
 
    frame2 = tk.Frame(pady=pady, bg=myRowColor)
    frame2.pack()

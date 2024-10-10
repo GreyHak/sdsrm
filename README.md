@@ -13,7 +13,9 @@ releases with the game.  Windows users can find it at:
 `C:\Program Files (x86)\Steam\steamapps\common\Satisfactory\CommunityResources\DedicatedServerAPIDocs.md`
 
 Currently supported features:
- - User and Administrator Login and Login Verification
+ - User and Administrator Login and Login Verification.  Authenticate with
+   either a password or a persistent API token from the admin console's
+   `server.GenerateAPIToken` command.
  - Get Server Status
  - Set Server Name
  - Upload Save
@@ -44,6 +46,8 @@ to the Satisfactory's Dedicated Server API is separate from SDSRM's GUI.  Copy
 *sdsrm_lib.py* into your project and import it `import sdsrm_lib`.
 
 This library provides the following interfaces:
+ - (authStatus, token) = authenticate(hostname, port, adminFlag, password)
+ - (authStatus, autoFlag) = verifyAuthentication(hostname, port, authorizationCode)
  - (getStatus, serverStatus) = sdsrm_lib.getServerState(hostname, port, authorizationCode)
  - setStatus = sdsrm_lib.setServerName(hostname, port, authorizationCode, newName)
  - uploadStatus = sdsrm_lib.uploadSave(hostname, port, authorizationCode, filepath, saveName, loadCheckFlag, advancedCheckFlag)
