@@ -162,8 +162,8 @@ def onShutdown():
    (adminFlag, authorizationCode) = authorizationInfo
    ((hostname, port), password) = getServerDetails()
 
-   (resultString, resultFlag) = sdsrm_lib.shutdown(hostname, port, authorizationCode)
-   shutdownStatusValue.set(resultString)
+   shutdownStatus = sdsrm_lib.shutdown(hostname, port, authorizationCode)
+   shutdownStatusValue.set(shutdownStatus)
 
 if __name__ == '__main__':
 

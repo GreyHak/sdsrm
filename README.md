@@ -71,6 +71,7 @@ This library provides the following interfaces:
  - (getStatus, serverStatus) = sdsrm_lib.getServerState(hostname, port, authorizationCode)
  - setStatus = sdsrm_lib.setServerName(hostname, port, authorizationCode, newName)
  - uploadStatus = sdsrm_lib.uploadSave(hostname, port, authorizationCode, filepath, saveName, loadCheckFlag, advancedCheckFlag)
+ - shutdownStatus = sdsrm_lib.shutdown(hostname, port, authorizationCode)
 
 ## Credits
  - Credit to [Nate Wren](https://natewren.com/satisfontory/) for the font used

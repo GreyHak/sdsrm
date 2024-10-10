@@ -326,7 +326,7 @@ def uploadSave(hostname, port, authorizationCode, filepath, saveName, loadCheckF
    global ssock
    for returnFlag in (False, True):
       if not connect(hostname, port):
-         return ("Connection Failed", None)
+         return "Connection Failed"
 
       try:
          ssock.send(package1)
@@ -336,57 +336,37 @@ def uploadSave(hostname, port, authorizationCode, filepath, saveName, loadCheckF
          sock = None
          ssock = None
          if returnFlag:
-            return ("Bad Sock", None)
+            return "Bad Sock"
 
    try:
-      #ssock.settimeout(10) # Adding this causes a TimeoutError exception on success
+      ssock.send(package2.encode())
 
-      if True: # Is this a bug in the server, it is not responding with 100 right away? I suspect curl gives up quickly.
-      #data = ssock.recv(2048)
-      #if len(data) == 0:
-      #   print("No reply")
-      #   data = b"HTTP/1.1 100"
-      #else:
-      #   print(f"Package 1 reply: {data}")
-      #
-      #if data[:12] == b"HTTP/1.1 403":
-      #   return "Server error: Forbidden"
-      #
-      #elif data[:10] == b"HTTP/1.1 4":
-      #   return f"Server error {data[9:12].decode()}"
-      #
-      #elif data[:12] == b"HTTP/1.1 100":
-         ssock.send(package2.encode())
-
-         print(f"Sending file of size {fileSize} bytes")
-         while fileSize > 0:
-            data = fin.read(min(fileSize, 16384))
-            fileSize -= len(data)
-            if fileSize == 0:
-               data += package3[:20]
-               ssock.send(data)
-               ssock.send(package3[20:])
-            else:
-               ssock.send(data)
-
-         data = ssock.recv(2048)
-         if data[:12] == b"HTTP/1.1 202": # Uploaded and Loading
-            return "Success"
-         elif data[:12] == b"HTTP/1.1 201": # Uploaded only
-            return "Success"
-         # 204 is considered a success on the server.
-         # 204 is being considered an error here because it likely means
-         # the save by the specified name already exists on the server
-         # and WAS NOT replaced by the upload file.
-         elif data[:12] == b"HTTP/1.1 204":
-            return "Save Already Exists"
+      print(f"Sending file of size {fileSize} bytes")
+      while fileSize > 0:
+         data = fin.read(min(fileSize, 16384))
+         fileSize -= len(data)
+         if fileSize == 0:
+            data += package3[:20]
+            ssock.send(data)
+            ssock.send(package3[20:])
          else:
-            print(f"Unsupported returned data from server: '{data}'")
-            return f"Upload Failure {data[9:12].decode()}"
+            ssock.send(data)
 
+      data = ssock.recv(2048)
+      if data[:12] == b"HTTP/1.1 202": # Uploaded and Loading
+         return "Success"
+      elif data[:12] == b"HTTP/1.1 201": # Uploaded only
+         return "Success"
+      # 204 is considered a success on the server.
+      # 204 is being considered an error here because it likely means
+      # the save by the specified name already exists on the server
+      # and WAS NOT replaced by the upload file.
+      elif data[:12] == b"HTTP/1.1 204":
+         return "Save Already Exists"
       else:
-         print(f"100 Continue not received as expected: '{data}'")
-         return "Transfer Rejected"
+         print(f"Unsupported returned data from server: '{data}'")
+         return f"Upload Failure {data[9:12].decode()}"
+
    except (ssl.SSLEOFError, ssl.SSLZeroReturnError):  # Seen on ssock.send when server terminated prematurely.
       return "Termination Exception"
    except TimeoutError:
@@ -400,7 +380,7 @@ def shutdown(hostname, port, authorizationCode):
    global ssock
    for returnFlag in (False, True):
       if not connect(hostname, port):
-         return ("Connection Failed", None)
+         return "Connection Failed"
 
       try:
          print("DEBUG: Verifying Authentication")
@@ -411,23 +391,23 @@ def shutdown(hostname, port, authorizationCode):
          sock = None
          ssock = None
          if returnFlag:
-            return ("Bad Sock", False)
+            return "Bad Sock"
 
    ssock.settimeout(10)
 
    try:
       data = ssock.recv(2048)
    except TimeoutError:
-      return ("Timed Out", False)
+      return "Timed Out"
 
    if data[:12] == b"HTTP/1.1 401":
-      return ("Auth Failure", False)
+      return "Auth Failure"
 
    if data[:10] == b"HTTP/1.1 4":
-      return (f"Server error {data[9:12].decode()}", False)
+      return f"Server error {data[9:12].decode()}"
 
    if data[:12] == b"HTTP/1.1 204":
-      return ("Success", True)
+      return "Success"
 
    print(f"Unsupported returned data from server: '{data}'")
-   return ("Server Failure", False)
+   return "Server Failure"
