@@ -63,6 +63,7 @@ def authenticated():
 
    if adminApiToken != None and len(adminApiToken) > 0:
       authorizationInfo = (True, adminApiToken)
+      saveServerConfig(hostname, port, password, adminApiToken)
 
    if authorizationInfo != None:
       (adminFlag, authorizationCode) = authorizationInfo
@@ -150,6 +151,20 @@ def onUploadSave():
 
    uploadSaveStatusValue.set(uploadStatus)
 
+def onShutdown():
+   global authorizationInfo
+   shutdownStatusValue.set("Initiated")
+   print()
+
+   if not authenticated():
+      shutdownStatusValue.set("Auth Failure")
+      return
+   (adminFlag, authorizationCode) = authorizationInfo
+   ((hostname, port), password) = getServerDetails()
+
+   (resultString, resultFlag) = sdsrm_lib.shutdown(hostname, port, authorizationCode)
+   shutdownStatusValue.set(resultString)
+
 if __name__ == '__main__':
 
    ((hostname, port), (password, adminApiToken)) = loadServerConfig()
@@ -187,10 +202,10 @@ if __name__ == '__main__':
    serverPasswordEntry = tk.Entry(frame1, font=myNormalFont, width=40, show="*", textvariable=tk.StringVar(window, (password, "")[password == None]))
    serverPasswordEntry.pack(side=tk.LEFT)
 
-   frame1b = tk.Frame(pady=pady, padx=82, bg=myOtherRowColor)
+   frame1b = tk.Frame(pady=pady, padx=92, bg=myOtherRowColor)
    frame1b.pack()
-   tk.Label(frame1b, bg=myOtherRowColor, width=87).pack(side=tk.LEFT)
-   tk.Label(frame1b, font=myNormalFont, bg=myOtherRowColor, fg=myOtherRowTextColor, text="or  Admin API Token:").pack(side=tk.LEFT)
+   tk.Label(frame1b, bg=myOtherRowColor, width=88).pack(side=tk.LEFT)
+   tk.Label(frame1b, font=myNormalFont, bg=myOtherRowColor, fg=myOtherRowTextColor, text="or Admin API Token:").pack(side=tk.LEFT)
    serverAdminApiTokenEntry = tk.Entry(frame1b, font=myNormalFont, width=40, show="*", textvariable=tk.StringVar(window, (adminApiToken, "")[adminApiToken == None]))
    serverAdminApiTokenEntry.pack(side=tk.LEFT)
 
@@ -240,5 +255,12 @@ if __name__ == '__main__':
    uploadSaveStatusValue = tk.StringVar(window, "<>")
    uploadSaveStatusLabel = tk.Label(frame4b, font=myNormalFont, bg=myLabelColor, width=20, textvariable=uploadSaveStatusValue)
    uploadSaveStatusLabel.pack(side=tk.LEFT)
+
+   frame5 = tk.Frame(frame4, padx=603, bg=myOtherRowColor)
+   frame5.pack()
+   tk.Button(frame5, font=myNormalFont, bg=myOtherRowColor, fg=myOtherRowTextColor, text="Shutdown", height=0, command=onShutdown).pack(side=tk.LEFT)
+   shutdownStatusValue = tk.StringVar(window, "<>")
+   shutdownStatusLabel = tk.Label(frame5, font=myNormalFont, bg=myLabelColor, width=20, textvariable=shutdownStatusValue)
+   shutdownStatusLabel.pack(side=tk.LEFT)
 
    window.mainloop()

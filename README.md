@@ -15,12 +15,32 @@ releases with the game.  Windows users can find it at:
 Currently supported features:
  - User and Administrator Login and Login Verification.  Authenticate with
    either a password or a persistent API token from the admin console's
-   `server.GenerateAPIToken` command.
- - Get Server Status
- - Set Server Name
- - Upload Save
-	 - Load save on upload
-	 - Enable advanced game settings on upload
+   `server.GenerateAPIToken` command.  (`PasswordLogin`, `PasswordlessLogin`
+   and `VerifyAuthenticationToken`)
+ - Get Server Status (`QueryServerState`)
+ - Set Server Name (`RenameServer`)
+ - Upload Save (`UploadSaveGame`)
+   - Load save on upload
+   - Enable advanced game settings on upload
+ - Shutdown Server (`Shutdown`)
+
+API functions not yet supported:
+ - GetServerOptions
+ - GetAdvancedGameSettings
+ - ApplyAdvancedGameSettings
+ - ClaimServer
+ - SetClientPassword
+ - SetAdminPassword
+ - SetAutoLoadSessionName
+ - RunCommand
+ - ApplyServerOptions
+ - CreateNewGame
+ - SaveGame
+ - DeleteSaveFile
+ - DeleteSaveSession
+ - EnumerateSessions
+ - LoadGame
+ - DownloadSaveGame
 
 This server manager works on **Windows** and **Linux**.  It requires
 **Python3**.  It has been tested with Python 3.7+ on Windows 11 and Ubuntu

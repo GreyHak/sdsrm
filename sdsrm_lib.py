@@ -391,3 +391,43 @@ def uploadSave(hostname, port, authorizationCode, filepath, saveName, loadCheckF
       return "Termination Exception"
    except TimeoutError:
       return "Timed Out"
+
+def shutdown(hostname, port, authorizationCode):
+   package = '{"function": "Shutdown"}'
+   package = f'POST /api/v1 HTTP/1.1\r\nHost: {hostname}\r\nUser-Agent: {USER_AGENT}\r\nAccept: */*\r\nAuthorization: Bearer {authorizationCode}\r\nContent-Type: application/json\r\nContent-Length: {len(package)}\r\n\r\n{package}'
+
+   global sock
+   global ssock
+   for returnFlag in (False, True):
+      if not connect(hostname, port):
+         return ("Connection Failed", None)
+
+      try:
+         print("DEBUG: Verifying Authentication")
+         ssock.send(package.encode())
+         break
+      except ssl.SSLEOFError:
+         print("Reconnecting because socket has closed")
+         sock = None
+         ssock = None
+         if returnFlag:
+            return ("Bad Sock", False)
+
+   ssock.settimeout(10)
+
+   try:
+      data = ssock.recv(2048)
+   except TimeoutError:
+      return ("Timed Out", False)
+
+   if data[:12] == b"HTTP/1.1 401":
+      return ("Auth Failure", False)
+
+   if data[:10] == b"HTTP/1.1 4":
+      return (f"Server error {data[9:12].decode()}", False)
+
+   if data[:12] == b"HTTP/1.1 204":
+      return ("Success", True)
+
+   print(f"Unsupported returned data from server: '{data}'")
+   return ("Server Failure", False)
